@@ -1,0 +1,445 @@
+/*
+ * Copyright (C) 2017-2019 Dremio Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.dremio.exec.sql;
+
+import com.dremio.PlanTestBase;
+import com.dremio.common.util.TestTools;
+import com.dremio.exec.proto.UserBitShared.DremioPBError.ErrorType;
+import java.io.File;
+import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.iceberg.AppendFiles;
+import org.apache.iceberg.DataFiles;
+import org.apache.iceberg.FileFormat;
+import org.apache.iceberg.Files;
+import org.apache.iceberg.PartitionSpec;
+import org.apache.iceberg.Schema;
+import org.apache.iceberg.Table;
+import org.apache.iceberg.Transaction;
+import org.apache.iceberg.hadoop.HadoopTables;
+import org.apache.iceberg.types.Types;
+import org.junit.Test;
+
+public class TestCreateTable extends PlanTestBase {
+
+  @Test
+  public void withInvalidColumnTypes() throws Exception {
+    errorMsgTestHelper(
+        String.format(
+            "CREATE TABLE %s.%s (region inte, region_id int)", TEMP_SCHEMA, "testTableName1"),
+        "Invalid column type [`inte`]");
+  }
+
+  @Test
+  public void withDuplicateColumnsInDef1() throws Exception {
+    errorMsgTestHelper(
+        String.format(
+            "CREATE TABLE %s.%s (region_id int, region_id int)", TEMP_SCHEMA, "testTableName2"),
+        "Column [region_id] specified multiple times.");
+  }
+
+  @Test
+  public void withDuplicateColumnsInDef2() throws Exception {
+    errorMsgTestHelper(
+        String.format(
+            "CREATE TABLE %s.%s (region_id int, sales_city varchar, sales_city varchar)",
+            TEMP_SCHEMA, "testTableName3"),
+        "Column [sales_city] specified multiple times.");
+  }
+
+  @Test
+  public void withDuplicateColumnsInStruct() throws Exception {
+    errorMsgTestHelper(
+        String.format(
+            "CREATE TABLE %s.%s (col1 ROW(region_id  int, Region_id  int))",
+            TEMP_SCHEMA, "testTableNameDupStruct"),
+        "Column [Region_id] specified multiple times.");
+  }
+
+  @Test
+  public void withDuplicateColumnsInListOfStruct() throws Exception {
+    errorMsgTestHelper(
+        String.format(
+            "CREATE TABLE %s.%s (col1 ARRAY(ROW(region_id  int, Region_id  int)))",
+            TEMP_SCHEMA, "testTableNameDupListOfStruct"),
+        "Column [Region_id] specified multiple times.");
+  }
+
+  @Test
+  public void withDuplicateColumnsInListOfListOfStruct() throws Exception {
+    errorMsgTestHelper(
+        String.format(
+            "CREATE TABLE %s.%s (col1 ARRAY(ARRAY(ROW(region_id  int, Region_id  int))))",
+            TEMP_SCHEMA, "testTableNameDupListOfListOfStruct"),
+        "Column [Region_id] specified multiple times.");
+  }
+
+  @Test
+  public void withDuplicateColumnsInStructOfListOfStruct() throws Exception {
+    errorMsgTestHelper(
+        String.format(
+            "CREATE TABLE %s.%s (col1 ROW( x ARRAY(ROW(x int,region_id  int, Region_id  int))))",
+            TEMP_SCHEMA, "testTableNameDupStructOfListOfStruct"),
+        "Column [Region_id] specified multiple times.");
+  }
+
+  @Test
+  public void withDuplicateColumnsInStructOfStruct() throws Exception {
+    errorMsgTestHelper(
+        String.format(
+            "CREATE TABLE %s.%s (col1 ROW( x ROW(x int,region_id  int, Region_id  int)))",
+            TEMP_SCHEMA, "testTableNameDupStructOfStruct"),
+        "Column [Region_id] specified multiple times.");
+  }
+
+  @Test
+  public void createTableInvalidType() throws Exception {
+    errorMsgTestHelper(
+        String.format(
+            "CREATE TABLE %s.%s (region_id int, sales_city Decimal(39, 4))",
+            TEMP_SCHEMA, "testTableName4"),
+        "Precision larger than 38 is not supported.");
+  }
+
+  @Test
+  public void createTableWithVarcharPrecision() throws Exception {
+    final String newTblName = "createTableVarcharPrecision";
+    try {
+      final String ctasQuery =
+          String.format(
+              "create table %s.%s ( VOTER_ID INT, NAME VARCHAR(40), AGE INT, REGISTRATION CHAR(51), "
+                  + "CONTRIBUTIONS float, VOTERZONE INT, CREATE_TIMESTAMP TIMESTAMP, create_date date) partition by(AGE)",
+              TEMP_SCHEMA, newTblName);
+      test(ctasQuery);
+    } finally {
+      FileUtils.deleteQuietly(new File(getDfsTestTmpSchemaLocation(), newTblName));
+    }
+  }
+
+  @Test
+  public void createTableAndSelect() throws Exception {
+    final String newTblName = "createEmptyTable";
+
+    try {
+      final String ctasQuery =
+          String.format(
+              "CREATE TABLE %s.%s (id int, name varchar, distance Decimal(38, 3))",
+              TEMP_SCHEMA, newTblName);
+
+      test(ctasQuery);
+
+      final String describeCreatedTable = String.format("describe %s.%s", TEMP_SCHEMA, newTblName);
+      testBuilder()
+          .sqlQuery(describeCreatedTable)
+          .unOrdered()
+          .baselineColumns(
+              "COLUMN_NAME",
+              "DATA_TYPE",
+              "IS_NULLABLE",
+              "NUMERIC_PRECISION",
+              "NUMERIC_SCALE",
+              "EXTENDED_PROPERTIES",
+              "MASKING_POLICY",
+              "SORT_ORDER_PRIORITY")
+          .baselineValues("id", "INTEGER", "YES", 32, 0, "[]", null, null)
+          .baselineValues("name", "CHARACTER VARYING", "YES", null, null, "[]", null, null)
+          .baselineValues("distance", "DECIMAL", "YES", 38, 3, "[]", null, null)
+          .build()
+          .run();
+
+      final String selectFromCreatedTable =
+          String.format("select count(*) as cnt from %s.%s", TEMP_SCHEMA, newTblName);
+      testBuilder()
+          .sqlQuery(selectFromCreatedTable)
+          .unOrdered()
+          .baselineColumns("cnt")
+          .baselineValues(0L)
+          .build()
+          .run();
+
+    } finally {
+      FileUtils.deleteQuietly(new File(getDfsTestTmpSchemaLocation(), newTblName));
+    }
+  }
+
+  @Test
+  public void createTableWhenATableWithSameNameAlreadyExists() throws Exception {
+    final String newTblName = "createTableWhenTableAlreadyExists";
+
+    try {
+      final String ctasQuery =
+          String.format("CREATE TABLE %s.%s (id int, name varchar)", TEMP_SCHEMA, newTblName);
+
+      test(ctasQuery);
+
+      errorMsgTestHelper(
+          ctasQuery,
+          String.format(
+              "A table or view with given name [%s.%s] already exists", TEMP_SCHEMA, newTblName));
+    } finally {
+      FileUtils.deleteQuietly(new File(getDfsTestTmpSchemaLocation(), newTblName));
+    }
+  }
+
+  @Test
+  public void createEmptyTablePartitionWithEmptyList() throws Exception {
+    final String newTblName = "ctasPartitionWithEmptyList";
+    final String ctasQuery =
+        String.format(
+            "CREATE TABLE %s.%s (id int, name varchar) PARTITION BY ", TEMP_SCHEMA, newTblName);
+
+    try {
+      errorTypeTestHelper(ctasQuery, ErrorType.PARSE);
+    } finally {
+      FileUtils.deleteQuietly(new File(getDfsTestTmpSchemaLocation(), newTblName));
+    }
+  }
+
+  @Test
+  public void testDroppingOfMapTypeColumn() throws Exception {
+    String table1 = "iceberg_map_test";
+    try {
+      File table1Folder = new File(getDfsTestTmpSchemaLocation(), table1);
+      HadoopTables hadoopTables = new HadoopTables(new Configuration());
+
+      Schema schema =
+          new Schema(
+              Types.NestedField.optional(
+                  1,
+                  "col1",
+                  Types.MapType.ofOptional(
+                      2,
+                      3,
+                      Types.StructType.of(
+                          Types.NestedField.optional(4, "f1", Types.StringType.get())),
+                      Types.StringType.get())),
+              Types.NestedField.optional(5, "col2", Types.IntegerType.get()));
+      PartitionSpec spec = PartitionSpec.builderFor(schema).build();
+      Table table = hadoopTables.create(schema, spec, table1Folder.getPath());
+      Transaction transaction = table.newTransaction();
+      AppendFiles appendFiles = transaction.newAppend();
+      final String testWorkingPath =
+          TestTools.getWorkingPath() + "/src/test/resources/iceberg/mapTest";
+      final String parquetFile = "iceberg_map_test.parquet";
+      File dataFile = new File(testWorkingPath, parquetFile);
+      appendFiles.appendFile(
+          DataFiles.builder(spec)
+              .withInputFile(Files.localInput(dataFile))
+              .withRecordCount(1)
+              .withFormat(FileFormat.PARQUET)
+              .build());
+      appendFiles.commit();
+      transaction.commitTransaction();
+
+      testBuilder()
+          .sqlQuery("select * from dfs_test_hadoop.iceberg_map_test")
+          .unOrdered()
+          .baselineColumns("col2")
+          .baselineValues(1)
+          .build()
+          .run();
+
+      Thread.sleep(1001);
+      String insertCommandSql =
+          "insert into  dfs_test_hadoop.iceberg_map_test select * from (values(2))";
+      test(insertCommandSql);
+      Thread.sleep(1001);
+
+      testBuilder()
+          .sqlQuery("select * from dfs_test_hadoop.iceberg_map_test")
+          .unOrdered()
+          .baselineColumns("col2")
+          .baselineValues(1)
+          .baselineValues(2)
+          .build()
+          .run();
+    } finally {
+      FileUtils.deleteQuietly(new File(getDfsTestTmpSchemaLocation(), table1));
+    }
+  }
+
+  private void addFileToTable(
+      Table table, PartitionSpec spec, String testWorkingPath, String parquetFile) {
+    Transaction transaction = table.newTransaction();
+    AppendFiles appendFiles = transaction.newAppend();
+
+    File dataFile = new File(testWorkingPath, parquetFile);
+    appendFiles.appendFile(
+        DataFiles.builder(spec)
+            .withInputFile(Files.localInput(dataFile))
+            .withRecordCount(1)
+            .withFormat(FileFormat.PARQUET)
+            .build());
+    appendFiles.commit();
+    transaction.commitTransaction();
+  }
+
+  @Test
+  public void testReadingFromRootPointer() throws Exception {
+    String table1 = "root_pointer";
+    try {
+      File table1Folder = new File(getDfsTestTmpSchemaLocation(), table1);
+      HadoopTables hadoopTables = new HadoopTables(new Configuration());
+
+      Schema schema =
+          new Schema(
+              Types.NestedField.optional(1, "col1", Types.IntegerType.get()),
+              Types.NestedField.optional(4, "col2", Types.IntegerType.get()));
+      PartitionSpec spec = PartitionSpec.builderFor(schema).build();
+      Table table = hadoopTables.create(schema, spec, table1Folder.getPath());
+      final String testWorkingPath =
+          TestTools.getWorkingPath() + "/src/test/resources/iceberg/root_pointer";
+      addFileToTable(table, spec, testWorkingPath, "f1.parquet");
+
+      testBuilder()
+          .sqlQuery("select * from dfs_test_hadoop.root_pointer")
+          .unOrdered()
+          .baselineColumns("col1", "col2")
+          .baselineValues(1, 2)
+          .build()
+          .run();
+
+      Thread.sleep(1001);
+      addFileToTable(table, spec, testWorkingPath, "f2.parquet");
+
+      testBuilder()
+          .sqlQuery("select * from dfs_test_hadoop.root_pointer")
+          .unOrdered()
+          .baselineColumns("col1", "col2")
+          .baselineValues(1, 2)
+          .build()
+          .run();
+
+      String refreshMetadata = "alter table dfs_test_hadoop.root_pointer refresh metadata";
+      test(refreshMetadata);
+
+      testBuilder()
+          .sqlQuery("select * from dfs_test_hadoop.root_pointer")
+          .unOrdered()
+          .baselineColumns("col1", "col2")
+          .baselineValues(1, 2)
+          .baselineValues(1, 2)
+          .build()
+          .run();
+    } finally {
+      FileUtils.deleteQuietly(new File(getDfsTestTmpSchemaLocation(), table1));
+    }
+  }
+
+  @Test
+  public void createTableWithComplexTypes() throws Exception {
+    final String newTblName = "createTableComplexTypes";
+    try {
+      final String ctasQuery =
+          String.format(
+              "create table %s.%s (point ROW(x INT , y  DECIMAL(38,3)), list ARRAY(BIGINT), listoflist ARRAY(ARRAY(DECIMAL(34,4))), listofstruct ARRAY(ROW(x BIGINT)),"
+                  + "structofstruct ROW(x ROW(z INT)), structoflist ROW(x ARRAY(INT)), point2 STRUCT<x : INT,y: INT>, list2 LIST<BIGINT>,listoflist2 LIST<LIST<DECIMAL(34,4)>>,listofstruct2 LIST<STRUCT<x: BIGINT>>,"
+                  + "structofstruct2 STRUCT<x :ROW(z INT)>,  structofstruct3 STRUCT<x :STRUCT<z :INT>>)",
+              TEMP_SCHEMA, newTblName);
+      test(ctasQuery);
+    } finally {
+      FileUtils.deleteQuietly(new File(getDfsTestTmpSchemaLocation(), newTblName));
+    }
+  }
+
+  @Test
+  public void createTableIfNotExists() throws Exception {
+    final String newTblName = "createTableIfNotExists";
+
+    try {
+      final String createQuery =
+          String.format(
+              "CREATE TABLE IF NOT EXISTS %s.%s (id int, name varchar)", TEMP_SCHEMA, newTblName);
+
+      testBuilder()
+          .sqlQuery(createQuery)
+          .unOrdered()
+          .baselineColumns("ok", "summary")
+          .baselineValues(true, "Table created")
+          .build()
+          .run();
+
+      testBuilder()
+          .sqlQuery(createQuery)
+          .unOrdered()
+          .baselineColumns("ok", "summary")
+          .baselineValues(
+              true, String.format("Table [%s.%s] already exists.", TEMP_SCHEMA, newTblName))
+          .build()
+          .run();
+    } finally {
+      FileUtils.deleteQuietly(new File(getDfsTestTmpSchemaLocation(), newTblName));
+    }
+  }
+
+  @Test
+  public void ctasIfNotExists() throws Exception {
+    final String newTblName1 = "ctasTable1";
+    final String newTblName2 = "ctasTable2";
+    final String newTblName3 = "ctasTable3";
+
+    try {
+      final String ctasQuery1 =
+          String.format(
+              "CREATE TABLE IF NOT EXISTS %s.%s (id int, name varchar)", TEMP_SCHEMA, newTblName1);
+      final String ctasQuery2 =
+          String.format(
+              "CREATE TABLE IF NOT EXISTS %s.%s (id int, name varchar)", TEMP_SCHEMA, newTblName2);
+      final String ctasQuery3 =
+          String.format(
+              "CREATE TABLE IF NOT EXISTS %s.%s AS SELECT * FROM %s.%s ",
+              TEMP_SCHEMA, newTblName2, TEMP_SCHEMA, newTblName1);
+      final String ctasQuery4 =
+          String.format(
+              "CREATE TABLE IF NOT EXISTS %s.%s AS SELECT * FROM %s.%s ",
+              TEMP_SCHEMA, newTblName3, TEMP_SCHEMA, newTblName1);
+
+      test(ctasQuery1);
+      test(ctasQuery2);
+
+      testBuilder()
+          .sqlQuery(ctasQuery3)
+          .unOrdered()
+          .baselineColumns("ok", "summary")
+          .baselineValues(
+              true, String.format("Table [%s.%s] already exists.", TEMP_SCHEMA, newTblName2))
+          .build()
+          .run();
+
+      testBuilder()
+          .sqlQuery(ctasQuery4)
+          .unOrdered()
+          .baselineColumns(
+              "Fragment",
+              "Records",
+              "Path",
+              "Metadata",
+              "Partition",
+              "FileSize",
+              "IcebergMetadata",
+              "fileschema",
+              "PartitionData",
+              "OperationType")
+          .expectsEmptyResultSet()
+          .build()
+          .run();
+    } finally {
+      FileUtils.deleteQuietly(new File(getDfsTestTmpSchemaLocation(), newTblName1));
+      FileUtils.deleteQuietly(new File(getDfsTestTmpSchemaLocation(), newTblName2));
+      FileUtils.deleteQuietly(new File(getDfsTestTmpSchemaLocation(), newTblName3));
+    }
+  }
+}

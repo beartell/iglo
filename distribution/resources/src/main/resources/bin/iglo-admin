@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Copyright (C) 2024 BEARTELL
+# Copyright (C) 2017-2019 Dremio Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+bin=`dirname "${BASH_SOURCE-$0}"`
+bin=`cd "$bin">/dev/null; pwd`
+
+export IGLO_ENV_SCRIPT="iglo-env"
+. "$bin"/iglo-config
+
+if [ -n "$CLIENT_GC_OPTS" ]; then
+  CLIENT_GC_OPTS=${CLIENT_GC_OPTS/"-Xloggc:<FILE-PATH>"/"-Xloggc:${loggc}"}
+  CLIENT_GC_OPTS=${CLIENT_GC_OPTS/"-Xlog:gc:<FILE-PATH>"/"-Xloggc:${loggc}"}
+  IGLO_JAVA_OPTS="$IGLO_JAVA_OPTS ${CLIENT_GC_OPTS}"
+fi
+
+IGLO_JAVA_OPTS="$IGLO_JAVA_OPTS -Xmx${IGLO_MAX_HEAP_MEMORY_SIZE_MB:-4096}m"
+IGLO_JAVA_OPTS="$IGLO_JAVA_OPTS $IGLO_JAVA_CLIENT_EXTRA_OPTS $IGLO_JAVA_EXTRA_OPTS"
+IGLO_JAVA_OPTS="$IGLO_JAVA_OPTS $IGLO_GC_OPTS"
+
+if [ -z "$IGLO_ADMIN_LOG_DIR" ]; then
+  if [ -w "$IGLO_LOG_DIR" ]; then
+    IGLO_ADMIN_LOG_DIR="$IGLO_LOG_DIR"
+  else
+    IGLO_ADMIN_LOG_DIR="$HOME/.iglo/"
+  fi
+fi
+
+Command="$1"
+DateTime=$(date '+%Y-%m-%d_%H:%M:%S')
+LOG_PARAM="-Ddremio.admin.log.path=${IGLO_ADMIN_LOG_DIR}/admin_${Command}_${DateTime}.log"
+
+if [ -n "$IGLO_ADMIN_LOG_VERBOSITY" ]; then
+      LOG_PARAM="$LOG_PARAM -Ddremio.admin.log.verbosity=${IGLO_ADMIN_LOG_VERBOSITY}"
+fi
+
+exec "$JAVA" $IGLO_JAVA_OPTS $LOG_PARAM -Dlogback.configurationFile=logback-admin.xml -cp $IGLO_CLASSPATH \
+  com.dremio.dac.cmd.AdminCommandRunner $@

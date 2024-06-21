@@ -1,0 +1,122 @@
+#
+# Copyright (C) 2024 BEARTELL
+# Copyright (C) 2017-2019 Dremio Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+#
+# Iglo environment variables used by Iglo daemon
+#
+
+#
+# Directory where Iglo logs are written
+# Default to $IGLO_HOME/log
+#
+#IGLO_LOG_DIR=${IGLO_HOME}/log
+
+#
+# Send logs to console and not to log files. The IGLO_LOG_DIR is ignored if set.
+#
+#IGLO_LOG_TO_CONSOLE=1
+
+#
+# Directory where Iglo pidfiles are written
+# Default to $IGLO_HOME/run
+#
+#IGLO_PID_DIR=${IGLO_HOME}/run
+
+#
+# Max total memory size (in MB) for the Iglo process
+#
+# If not set, default to using max heap and max direct.
+#
+# If both max heap and max direct are set, this is not used
+# If one is set, the other is calculated as difference
+# of max memory and the one that is set.
+#
+#IGLO_MAX_MEMORY_SIZE_MB=
+
+#
+# Max heap memory size (in MB) for the Iglo process
+#
+# Default to 4096 for server
+#
+#IGLO_MAX_HEAP_MEMORY_SIZE_MB=4096
+
+#
+# Max direct memory size (in MB) for the Iglo process
+#
+# Default to 8192 for server
+#
+#IGLO_MAX_DIRECT_MEMORY_SIZE_MB=8192
+
+#
+# Max permanent generation memory size (in MB) for the Iglo process
+# (Only used for Java 7)
+#
+# Default to 512 for server
+#
+#IGLO_MAX_PERMGEN_MEMORY_SIZE_MB=512
+
+#
+# Garbage collection logging is enabled by default. Set the following
+# parameter to "no" to disable garbage collection logging.
+#
+#IGLO_GC_LOGS_ENABLED="yes"
+
+#
+# Send GC logs to console and not to log files. The IGLO_LOG_DIR is ignored if set.
+# Default is set to "no"
+#
+#IGLO_GC_LOG_TO_CONSOLE="no"
+
+#
+# By default G1GC is used as java garbage collection.
+# This can be overriden by changing this parameter
+#
+#IGLO_GC_OPTS="-XX:+UseG1GC"
+
+#
+# Java version will be checked by default.
+# Currently only java 8 is supported by Iglo.
+# This check can be disabled by changing value to false.
+#
+#IGLO_JAVA_VERSION_CHECK="true"
+
+#
+# The scheduling priority for the server
+#
+# Default to 0
+#
+# IGLO_NICENESS=0
+#
+
+#
+# Number of seconds after which the server is killed forcibly it it hasn't stopped
+#
+# Default to 120
+#
+#IGLO_STOP_TIMEOUT=120
+
+# Extra Java options - shared between iglo and iglo-admin commands
+#
+#IGLO_JAVA_EXTRA_OPTS=
+
+# Extra Java options - client only (iglo-admin command)
+#
+#IGLO_JAVA_CLIENT_EXTRA_OPTS=
+
+# Extra Java options - server only (iglo command)
+#
+#IGLO_JAVA_SERVER_EXTRA_OPTS=

@@ -1,0 +1,241 @@
+/*
+ * Copyright (C) 2017-2019 Dremio Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+@import "~@app/uiTheme/less/color-schema.less";
+:global {
+  .jobsContent {
+    &__fullHeight {
+      line-height: 40px;
+    }
+    &__durationSpill {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      line-height: 40px;
+    }
+    &__spillIcon {
+      height: 20px;
+    }
+    &__columnCell {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    &__noDataCell {
+      min-height: 40px;
+    }
+    &__columnTooltipText {
+      color: @font-color1;
+      font-size: 12px;
+      line-height: 20px;
+    }
+    &__numericContent {
+      display: flex;
+      justify-content: flex-end;
+      margin-right: 10px;
+    }
+    &__tooltip {
+      left: 100%;
+      top: 0;
+    }
+    &__sqlTooltipText {
+      color: @font-color1;
+      font-family: var(--dremio--font-family--monospace);
+      font-size: 12px;
+      line-height: 20px;
+    }
+    &__jobIdWrapper {
+      width: 11ch;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    &__sqlWrapper {
+      font-family: var(--dremio--font-family--monospace);
+      font-size: 12px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 20px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: @greyish-blue;
+
+      &::after {
+        content: "";
+        display: block;
+      }
+    }
+    &__tableHeaders {
+      display: flex;
+      justify-content: flex-end;
+    }
+    &__twoColumnWrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    &__leftAlign {
+      display: block;
+      text-align: right;
+      line-height: 40px;
+    }
+    &-dataset {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      &__accelerationIconWrapper {
+        flex-basis: 12%;
+      }
+      &__accelerationIcon {
+        height: 24px;
+      }
+      &__tooltip {
+        left: 100%;
+        top: 0;
+      }
+      &__dataset {
+        margin-right: 6px;
+      }
+      &__name {
+        flex-basis: 72%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: @font-color1;
+      }
+      &__versionContext {
+        display: inline-flex;
+        margin-left: 4px;
+      }
+      &__tooltipWrapper {
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+      }
+      &__label {
+        font-style: normal;
+        font-weight: 600;
+        font-size: 12px;
+        line-height: 16px;
+        color: @font-color1;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+      &__path {
+        font-style: normal;
+        font-weight: normal;
+        font-size: 12px;
+        line-height: 16px;
+        color: @font-color1;
+        text-overflow: ellipsis;
+      }
+      &__nameWrapper {
+        padding-left: 6px;
+        overflow: hidden;
+      }
+      &-icon {
+        cursor: pointer;
+        &:hover {
+          color: var(--dremio--color--link);
+        }
+      }
+    }
+    &-sql-content {
+      line-height: 40px;
+      width: fit-content;
+    }
+  }
+  .ReactVirtualized__Table__Grid::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    border-radius: 8px;
+    background-color: @white;
+  }
+  .ReactVirtualized__Table__Grid::-webkit-scrollbar-thumb {
+    width: 8px;
+    height: 5px;
+    border-radius: 8px;
+    background-color: @DARK_600;
+  }
+  .ReactVirtualized__Table .ReactVirtualized__Table__row:hover {
+    background: @PRIMARY_100 !important;
+
+    .pin {
+      opacity: 1;
+    }
+    opacity: 1;
+  }
+  .sql-tooltip-content-container {
+    padding-right: 16px;
+    padding-left: 16px;
+    max-height: 76px;
+    overflow-y: auto;
+  }
+
+  .wikiOverlayTitle {
+    display: flex;
+    justify-content: space-between;
+    width: 400px;
+    padding: 0 var(--dremio--spacing--1) 0 var(--dremio--spacing--2);
+
+    &__info {
+      display: flex;
+      align-items: center;
+      max-width: calc(100% - 64px);
+
+      &-datasetIcon {
+        height: 24px;
+        width: 24px;
+        margin-right: var(--dremio--spacing--1);
+      }
+
+      &-name {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      &-reflection {
+        height: 24px;
+        width: 24px;
+        margin-left: var(--dremio--spacing--05);
+      }
+    }
+
+    &__hidden-button {
+      height: 0;
+      width: 0;
+      padding: 0;
+      border: 0;
+      opacity: 0;
+    }
+
+    &__actions {
+      display: flex;
+      align-items: center;
+      color: var(--color--neutral--600);
+
+      &-button {
+        height: 32px;
+        width: 32px;
+        color: var(--dremio--color--neutral--600) !important;
+
+        &:hover {
+          color: var(--dremio--color--link) !important;
+        }
+      }
+    }
+  }
+}

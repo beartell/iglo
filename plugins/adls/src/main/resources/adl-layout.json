@@ -1,0 +1,104 @@
+{
+  "sourceType": "ADL",
+  "tags": [
+    "beta"
+  ],
+  "metadataRefresh": {
+    "datasetDiscovery": false,
+    "isFileSystemSource": true
+  },
+  "form": {
+    "tabs": [
+      {
+        "name": "General",
+        "isGeneral": true,
+        "sections": [
+          {
+            "name": "Authentication",
+            "tooltip": "",
+            "elements": [
+              {
+                "propName": "config.accountName",
+                "placeholder": ""
+              },
+              {
+                "propName": "config.clientId",
+                "placeholder": ""
+              },
+              {
+                "propName": "config.clientKeyRefreshUrl",
+                "placeholder": ""
+              },
+              {
+                "propName": "config.clientKeyPassword"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Advanced Options",
+        "sections": [
+          {
+            "elements": [
+              {
+                "propName": "config.enableAsync"
+              },
+              {
+                "propName": "config.isPartitionInferenceEnabled"
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "propName": "config.rootPath"
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "propName": "config.defaultCtasFormat",
+                "uiType": "container_selection",
+                "selectorType": "select",
+                "options": [
+                  {
+                    "value": "ICEBERG",
+                    "container": {}
+                  },
+                  {
+                    "value": "PARQUET",
+                    "container": {}
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Connection Properties",
+            "elements": [
+              {
+                "emptyLabel": "No properties added",
+                "addLabel": "Add property",
+                "propName": "config.propertyList"
+              }
+            ]
+          },
+          {
+            "name": "Cache Options",
+            "checkboxController": "enableAsync",
+            "elements": [
+              {
+                "propName": "config.isCachingEnabled"
+              },
+              {
+                "propName": "config.maxCacheSpacePct"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

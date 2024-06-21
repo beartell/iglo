@@ -1,0 +1,175 @@
+/*
+ * Copyright (C) 2017-2019 Dremio Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+@import "~@app/uiTheme/less/color-schema.less";
+
+:global {
+  .sqlEditor {
+    &__exploreTable {
+      position: relative;
+      overflow-y: visible;
+      opacity: 1;
+      display: flex;
+      flex-grow: 1;
+      margin: 8px;
+    }
+
+    &__pendingTable {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      overflow: hidden;
+
+      &__button {
+        margin-top: var(--dremio--spacing--2);
+        margin-bottom: var(--dremio--spacing--1) !important;
+      }
+
+      &__statusMessage,
+      &__button {
+        display: flex;
+        flex-direction: row;
+        font-size: 16px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 24px;
+      }
+    }
+
+    &__jobsTable {
+      position: relative;
+      min-width: 1100px;
+      overflow: scroll;
+
+      &--hidden {
+        display: none;
+      }
+
+      &--solo {
+        height: 100%;
+        margin: 0 8px;
+
+        // style overrides are necessary since AutoSizer doesn't grow on this page as expected
+        .jobListPage-wrapper {
+          .auto-sizer {
+            width: 100% !important;
+
+            .ReactVirtualized__Table {
+              width: fit-content;
+              min-width: 100%;
+
+              .ReactVirtualized__Table__headerRow.ReactVirtualized__Table--noZebraStripesRows {
+                width: fit-content !important;
+                min-width: 100% !important;
+
+                & > div:first-child {
+                  visibility: hidden;
+                }
+              }
+
+              .ReactVirtualized__Grid.ReactVirtualized__Table__Grid {
+                width: 100% !important;
+
+                .ReactVirtualized__Grid__innerScrollContainer {
+                  max-width: none !important;
+
+                  .ReactVirtualized__Table__row {
+                    width: fit-content !important;
+                    min-width: 100% !important;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      &--withPendingTable {
+        height: 100%;
+        overflow: auto;
+        margin: 0 8px;
+
+        .ReactVirtualized__Table__headerRow.ReactVirtualized__Table--noZebraStripesRows {
+          display: none;
+        }
+      }
+
+      &__buttons {
+        width: 32px;
+        height: 32px;
+        color: var(--color--neutral--600) !important;
+
+        &:hover {
+          color: var(--dremio--color--link) !important;
+        }
+      }
+
+      &__tab-button {
+        width: 24px;
+        height: 24px;
+        color: var(--color--neutral--600);
+      }
+
+      &__actionButtonContainer {
+        display: flex;
+        width: 72px;
+        justify-content: space-evenly;
+      }
+    }
+
+    &__strikeThroughHeader {
+      white-space: nowrap;
+      text-align: center;
+      background-color: transparent;
+      line-height: 40px;
+      width: 100%;
+    }
+
+    &__strikeThroughHeaderContent {
+      position: relative;
+      width: 135px;
+      height: 18px;
+      padding: 8px;
+      z-index: 2;
+      background-color: white;
+      font-style: normal;
+      font-weight: normal;
+      font-size: 12px;
+    }
+
+    &__lineForStrikethrough {
+      width: 100%;
+      height: 1px;
+      transform: translateY(-20px);
+      background-color: @FIGMA_NEUTRAL_150;
+    }
+
+    &__strikeThroughContainer {
+      height: 40px;
+      width: 100%;
+    }
+  }
+
+  .virtualized-table-viewer {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .virtualized-table-viewer::-webkit-scrollbar {
+    display: none;
+  }
+}
